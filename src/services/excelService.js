@@ -26,20 +26,24 @@ export const parseSheetData = (worksheet) => {
   if (!worksheet) return [];
   
   const data = [];
-  // Assuming row 1 is header
   let headers = [];
+  let maxCol = 0;
   
   worksheet.eachRow((row, rowNumber) => {
     if (rowNumber === 1) {
-      row.eachCell((cell, colNumber) => {
-        headers[colNumber] = cell.text;
+      // Read headers — use includeEmpty so we capture all columns
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        headers[colNumber] = cell.text || `Col_${colNumber}`;
+        if (colNumber > maxCol) maxCol = colNumber;
       });
     } else {
       let rowData = { _rowNumber: rowNumber };
-      row.eachCell((cell, colNumber) => {
+      // Always iterate all header columns so no column is skipped when empty
+      for (let colNumber = 1; colNumber <= maxCol; colNumber++) {
         const header = headers[colNumber] || `Col_${colNumber}`;
-        rowData[header] = cell.text;
-      });
+        const cell = row.getCell(colNumber);
+        rowData[header] = cell.text ?? '';
+      }
       data.push(rowData);
     }
   });
@@ -80,6 +84,66 @@ export const saveWorkbook = async (workbook, originalFilename) => {
   const a = document.createElement('a');
   a.href = url;
   a.download = `updated_${originalFilename}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+};
+
+/**
+ * Creates and downloads a blank Excel template with all required inventory columns.
+ * Opens directly in Excel when downloaded.
+ */
+export const createAndDownloadTemplate = async () => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'SnapAssist AI';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Inventory');
+
+  // ✅ All required columns — including Model & Serial Number
+  worksheet.columns = [
+    { header: 'Store Code',    key: 'store_code',    width: 15 },
+    { header: 'Store Name',    key: 'store_name',    width: 25 },
+    { header: 'Location',      key: 'location',      width: 20 },
+    { header: 'Model',         key: 'model',         width: 20 },
+    { header: 'Serial Number', key: 'serial_number', width: 22 },
+    { header: 'Status',        key: 'status',        width: 15 },
+  ];
+
+  // Style the header row — blue background, white bold text
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 28;
+  headerRow.eachCell((cell) => {
+    cell.font      = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+    cell.fill      = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    cell.alignment = { vertical: 'middle', horizontal: 'center' };
+    cell.border    = {
+      top: { style: 'thin' }, bottom: { style: 'thin' },
+      left: { style: 'thin' }, right: { style: 'thin' },
+    };
+  });
+
+  // Add 20 empty data rows (ready to fill)
+  for (let i = 0; i < 20; i++) {
+    const row = worksheet.addRow({});
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        top: { style: 'hair' }, bottom: { style: 'hair' },
+        left: { style: 'hair' }, right: { style: 'hair' },
+      };
+    });
+  }
+
+  // Download as .xlsx — opens in Microsoft Excel / Google Sheets
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'SnapAssist_Inventory_Template.xlsx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

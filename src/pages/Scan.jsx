@@ -3,20 +3,21 @@ import Webcam from 'react-webcam';
 import Tesseract from 'tesseract.js';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useAppStore } from '../store/useAppStore';
-import { updateWorkbook, saveWorkbook } from '../services/excelService';
-import { Camera, ScanLine, X, Check, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { updateWorkbook } from '../services/excelService';
+import { Camera, ScanLine, X, Check, FileSpreadsheet, Loader2, CheckCircle2 } from 'lucide-react';
 
 const Scan = () => {
   const webcamRef = useRef(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [matchResult, setMatchResult] = useState(null);
-  
-  const workbook = useAppStore(state => state.workbook);
+  const [savedToast, setSavedToast] = useState(false);
+
+  const workbook        = useAppStore(state => state.workbook);
   const selectedSheetName = useAppStore(state => state.selectedSheetName);
   const activeSheetData = useAppStore(state => state.activeSheetData);
-  const addScanHistory = useAppStore(state => state.addScanHistory);
-  const originalFile = useAppStore(state => state.originalFile);
+  const addScanHistory  = useAppStore(state => state.addScanHistory);
+  const saveUpdatedWorkbook = useAppStore(state => state.saveUpdatedWorkbook);
 
   const captureAndScan = useCallback(async () => {
     if (!webcamRef.current) return;
@@ -97,18 +98,21 @@ const Scan = () => {
     if (!matchResult || !workbook || !selectedSheetName) return;
 
     try {
-      // In a real app, we'd prompt the user which column to update.
-      // Here we assume a 'Status' or 'Scanned' column.
       const rowNumber = matchResult.row._rowNumber;
-      
-      // Let's just update the first column that sounds like 'Status' or just add one
+
+      // Find 'Status' column, fallback to 2nd column
       let statusCol = Object.keys(matchResult.row).find(k => k.toLowerCase().includes('status'));
       if (!statusCol) {
-         statusCol = Object.keys(matchResult.row)[1]; // fallback to 2nd col
+        statusCol = Object.keys(matchResult.row).filter(k => k !== '_rowNumber')[0];
       }
 
+      // Update the workbook in memory (no download)
       const updatedWorkbook = await updateWorkbook(workbook, selectedSheetName, rowNumber, statusCol, 'Scanned OK');
-      
+
+      // Persist updated workbook in app store
+      saveUpdatedWorkbook(updatedWorkbook);
+
+      // Add to history
       addScanHistory({
         sheet: selectedSheetName,
         rowNumber: rowNumber,
@@ -116,15 +120,16 @@ const Scan = () => {
         status: 'Scanned OK'
       });
 
-      // Provide file download
-      await saveWorkbook(updatedWorkbook, originalFile?.name || 'updated.xlsx');
-      
       setMatchResult(null);
-      alert("Saved successfully!");
+      setScanResult(null);
+
+      // Show in-app toast — no download triggered
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 3000);
 
     } catch (error) {
       console.error("Save error:", error);
-      alert("Failed to save to workbook.");
+      alert("Failed to save.");
     }
   };
 
@@ -142,6 +147,14 @@ const Scan = () => {
     <div className="relative h-full bg-black flex flex-col">
       {/* Hidden div for barcode reader mock if needed */}
       <div id="reader-mock" style={{ display: 'none' }}></div>
+
+      {/* Saved Toast */}
+      {savedToast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-5 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium animate-bounce">
+          <CheckCircle2 size={16} />
+          Saved in app! Download from History when ready.
+        </div>
+      )}
       
       <div className="flex-1 relative overflow-hidden bg-black">
         <Webcam

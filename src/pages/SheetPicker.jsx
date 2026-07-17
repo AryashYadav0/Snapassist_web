@@ -83,40 +83,70 @@ const SheetPicker = () => {
           </div>
         ) : (
           <div>
+            {/* Info Banner */}
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4 flex items-start gap-3">
               <div className="text-blue-600 mt-0.5"><List size={20} /></div>
               <div>
                 <p className="text-sm text-blue-900 font-medium">Ready for scanning</p>
-                <p className="text-xs text-blue-700 mt-1">Found {activeSheetData.length} records in this sheet. You can now go to the Scan tab to start checking devices.</p>
+                <p className="text-xs text-blue-700 mt-1">
+                  Found {activeSheetData.length} records in this sheet. You can now go to the Scan tab to start checking devices.
+                </p>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              {activeSheetData.slice(0, 50).map((row, idx) => (
-                <div key={idx} className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 text-sm">
-                  {/* Display the first few columns to give a preview */}
-                  <div className="flex justify-between items-center border-b border-gray-50 pb-2 mb-2">
-                    <span className="font-mono text-xs text-gray-400">Row {row._rowNumber}</span>
+
+            {/* Excel-like Table */}
+            {activeSheetData.length > 0 && (() => {
+              const columns = Object.keys(activeSheetData[0]).filter(k => k !== '_rowNumber');
+              return (
+                <div className="rounded-xl border border-gray-200 overflow-hidden shadow-sm bg-white">
+                  <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '60vh' }}>
+                    <table className="min-w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-gray-100 sticky top-0 z-10">
+                          <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 border-b border-r border-gray-200 bg-gray-100 w-12 sticky left-0 z-20">
+                            #
+                          </th>
+                          {columns.map((col) => (
+                            <th
+                              key={col}
+                              className="px-4 py-2 text-left text-xs font-semibold text-gray-600 border-b border-r border-gray-200 bg-gray-100 whitespace-nowrap"
+                            >
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {activeSheetData.map((row, idx) => (
+                          <tr
+                            key={idx}
+                            className={`transition-colors hover:bg-blue-50 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}
+                          >
+                            <td className={`px-3 py-2 text-xs text-gray-400 font-mono border-r border-gray-100 sticky left-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'}`}>
+                              {row._rowNumber}
+                            </td>
+                            {columns.map((col) => (
+                              <td
+                                key={col}
+                                className="px-4 py-2 text-gray-800 border-r border-gray-100 whitespace-nowrap max-w-[180px] truncate"
+                                title={row[col] || ''}
+                              >
+                                {row[col] !== undefined && row[col] !== null && row[col] !== ''
+                                  ? String(row[col])
+                                  : <span className="text-gray-300">—</span>}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {Object.entries(row)
-                      .filter(([key]) => key !== '_rowNumber')
-                      .slice(0, 4) // Show only up to 4 fields for preview
-                      .map(([key, val]) => (
-                        <div key={key} className="truncate">
-                          <span className="text-gray-500 block truncate">{key}</span>
-                          <span className="font-medium text-gray-900 truncate block">{val || '-'}</span>
-                        </div>
-                    ))}
+                  <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 text-xs text-gray-400 text-right">
+                    {activeSheetData.length} rows · {columns.length} columns
                   </div>
                 </div>
-              ))}
-              {activeSheetData.length > 50 && (
-                <div className="text-center p-4 text-xs text-gray-500">
-                  Showing first 50 rows. {activeSheetData.length - 50} more rows loaded in background.
-                </div>
-              )}
-            </div>
+              );
+            })()}
           </div>
         )}
       </div>

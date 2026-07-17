@@ -7,20 +7,28 @@ export const useAppStore = create((set) => ({
   selectedSheetName: null,
   activeSheetData: [],
   originalFile: null,
-  
+  hasUnsavedScans: false, // true when scans are saved in-app but not yet downloaded
+
   // History State
   scanHistory: [],
 
   // Actions
-  setWorkbookData: (workbook, sheets, file) => set({ 
-    workbook, 
-    sheets, 
-    originalFile: file 
+  setWorkbookData: (workbook, sheets, file) => set({
+    workbook,
+    sheets,
+    originalFile: file,
+    hasUnsavedScans: false,
   }),
-  
-  setSelectedSheet: (sheetName, data) => set({ 
+
+  setSelectedSheet: (sheetName, data) => set({
     selectedSheetName: sheetName,
     activeSheetData: data
+  }),
+
+  // Save updated workbook in app (no download) after each scan
+  saveUpdatedWorkbook: (updatedWorkbook) => set({
+    workbook: updatedWorkbook,
+    hasUnsavedScans: true,
   }),
 
   addScanHistory: (scanResult) => set((state) => ({
@@ -32,6 +40,7 @@ export const useAppStore = create((set) => ({
     sheets: [],
     selectedSheetName: null,
     activeSheetData: [],
-    originalFile: null
+    originalFile: null,
+    hasUnsavedScans: false,
   })
 }));

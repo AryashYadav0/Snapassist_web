@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
-import { readWorkbook } from '../services/excelService';
+import { Upload, FileSpreadsheet, AlertCircle, Download } from 'lucide-react';
+import { readWorkbook, createAndDownloadTemplate } from '../services/excelService';
 import { useAppStore } from '../store/useAppStore';
 
 const Home = () => {
@@ -104,6 +104,29 @@ const Home = () => {
               <p>{error}</p>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Download Template */}
+      <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-green-100 text-green-600 rounded-lg shrink-0">
+            <Download size={20} />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 text-sm">Need a template?</h3>
+            <p className="text-xs text-gray-500 mt-0.5 mb-3">
+              Download the Excel template with all required columns:
+              Store Code, Store Name, Location, <strong>Model</strong>, <strong>Serial Number</strong>, Status.
+            </p>
+            <button
+              onClick={createAndDownloadTemplate}
+              className="w-full py-2 border border-green-600 text-green-700 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <Download size={15} />
+              Download Excel Template (.xlsx)
+            </button>
+          </div>
         </div>
       </div>
     </div>
